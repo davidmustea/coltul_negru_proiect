@@ -1,0 +1,3 @@
+/Users/davidmustea/CLionProjects/coltul-negru-proiect/cmake-build-debug/CMakeFiles/coltul_negru_proiect.dir
+/Users/davidmustea/CLionProjects/coltul-negru-proiect/cmake-build-debug/CMakeFiles/edit_cache.dir
+/Users/davidmustea/CLionProjects/coltul-negru-proiect/cmake-build-debug/CMakeFiles/rebuild_cache.dir
