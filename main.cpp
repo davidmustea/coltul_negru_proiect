@@ -1,6 +1,7 @@
 #include <iostream>
 #include <graphics.h>
 #include <windows.h>
+#include <stack>
 
 using namespace std;
 
@@ -61,20 +62,20 @@ void drawPieces(int screenWidth, int screenHeight, int selectedPiece) {
     int pieceX = 50;
     int pieceYStart = screenHeight / 2 - 100;
 
-    // Piece dimensions
+    // marime piese
     int pieceWidth = 50, pieceHeight = 50;
 
-    // Draw pieces and handle highlight
+    // draw si highlight
     for (int i = 0; i < 3; ++i) {
-        int pieceY = pieceYStart + i * 60; // Position of the piece in the list
+        int pieceY = pieceYStart + i * 60; // pozitie piesa pe lista
 
-        // Highlight the selected piece
-        if (selectedPiece == i + 1) setcolor(YELLOW);
+        // highlight piesa
+        if (selectedPiece == i + 1) setcolor(YELLOW); //  culoare highlight
         else setcolor(WHITE);
 
         rectangle(pieceX - 5, pieceY - 5, pieceX + pieceWidth + 5, pieceY + pieceHeight + 5);
 
-        // Display the piece image
+        // imagini piesa
         const char* pieceImage =
             i == 0 ? "piece_cross.bmp" :
             i == 1 ? "piece_down_up.bmp" :
@@ -83,30 +84,67 @@ void drawPieces(int screenWidth, int screenHeight, int selectedPiece) {
     }
 }
 
+bool checkWin(int board[10][10], int curRow, int curCol, int difficulty) {
+    bool visited[10][10] = {false};
+    stack<pair<int, int>> s;
+    s.push({curRow, curCol});
+
+    while (!s.empty()) {
+        int row = s.top().first;
+        int col = s.top().second;
+        s.pop();
+
+        if ((row == difficulty - 1 && col == difficulty - 2) || // stanga cn
+            (row == difficulty - 2 && col == difficulty - 1) || // deasupra cn
+            (row == difficulty - 1 && col == difficulty - 1)) { // pe cn
+                return true;
+}
+
+
+        if (visited[row][col]) continue;
+        visited[row][col] = true;
+
+        // verificam vecinii
+        int dx[] = {-1, 1, 0, 0}; // sus, jos, stanga, dreapta
+        int dy[] = {0, 0, -1, 1};
+
+        for (int i = 0; i < 4; ++i) {
+            int newRow = row + dx[i];
+            int newCol = col + dy[i];
+
+            if (newRow >= 0 && newRow < difficulty && newCol >= 0 && newCol < difficulty &&
+                !visited[newRow][newCol] && board[newRow][newCol] != 0) {
+                s.push({newRow, newCol});
+            }
+        }
+    }
+
+    return false;
+}
+
 void startGame(int difficulty, int screenWidth, int screenHeight) {
     cleardevice();
     drawBackground("start_menu_bg.bmp", screenWidth, screenHeight);
     drawTable(difficulty, screenWidth, screenHeight);
 
-    int selectedPiece = -1; // No piece selected initially
+    int selectedPiece = -1; // nicio piesa cu -1
     bool isPlayerRed = true;
 
     int squareSize = min(screenWidth, screenHeight) / (difficulty + 4);
     int boardStartX = (screenWidth - squareSize * difficulty) / 2;
     int boardStartY = (screenHeight - squareSize * difficulty) / 2;
+    // tabla de joc
+    int board[10][10] = {0}; // 0 empty, 1 cross, 2 vertical, 3 horizontal
+    int lastRow = 0, lastCol = 0; // last placed
+    board[0][0] = 1; // cross topleft
 
-    // Initialize board state
-    int board[10][10] = {0}; // 0 for empty, 1 for cross, 2 for vertical, 3 for horizontal
-
-    // Draw the initial game components
     drawTable(difficulty, screenWidth, screenHeight);
 
     while (true) {
-        // Draw dynamic elements
         drawPlayerTurn(screenWidth, screenHeight, isPlayerRed);
         drawPieces(screenWidth, screenHeight, selectedPiece);
 
-        // Draw pieces on the board
+        // draw piese puse
         for (int row = 0; row < difficulty; ++row) {
             for (int col = 0; col < difficulty; ++col) {
                 if (board[row][col] > 0) {
@@ -124,7 +162,6 @@ void startGame(int difficulty, int screenWidth, int screenHeight) {
             }
         }
 
-        // Handle mouse input
         if (ismouseclick(WM_LBUTTONDOWN)) {
             int x, y;
             getmouseclick(WM_LBUTTONDOWN, x, y);
@@ -133,28 +170,44 @@ void startGame(int difficulty, int screenWidth, int screenHeight) {
             int pieceYStart = screenHeight / 2 - 100, pieceHeight = 50;
 
             if (selectedPiece == -1) {
-                // Select a piece
+                // select piesa
                 for (int i = 0; i < 3; ++i) {
                     int pieceY = pieceYStart + i * 60;
                     if (x >= pieceX && x <= pieceX + pieceWidth && y >= pieceY && y <= pieceY + pieceHeight) {
-                        selectedPiece = i + 1; // Select the corresponding piece
+                        selectedPiece = i + 1; // piece sel
                         break;
                     }
                 }
             } else {
-                // Place the selected piece on the board
                 int col = (x - boardStartX) / squareSize;
                 int row = (y - boardStartY) / squareSize;
 
-                if (col >= 0 && col < difficulty && row >= 0 && row < difficulty && board[row][col] == 0) {
-                    board[row][col] = selectedPiece; // Place the piece
-                    selectedPiece = -1; // Deselect after placement
-                    isPlayerRed = !isPlayerRed; // Switch turn
+                // validplacement
+                bool isAdjacent = (abs(row - lastRow) == 1 && col == lastCol) ||
+                                  (abs(col - lastCol) == 1 && row == lastRow);
+
+                bool isBlackCorner = (row == difficulty - 1 && col == difficulty - 1);
+
+                if (col >= 0 && col < difficulty && row >= 0 && row < difficulty &&
+                    board[row][col] == 0 && isAdjacent && !isBlackCorner) {
+                    board[row][col] = selectedPiece; // pune piesa
+                    lastRow = row; // update
+                    lastCol = col;
+                    selectedPiece = -1; // deselect
+                    isPlayerRed = !isPlayerRed;
+
                 }
             }
         }
 
-        delay(30); // Reduce CPU usage
+        if (checkWin(board, 0, 0, difficulty)) {
+            if(isPlayerRed){
+            outtextxy(screenWidth / 2 - 100, screenHeight / 2, "Player Blue Wins!");
+            }
+            else outtextxy(screenWidth / 2 - 100, screenHeight / 2, "Player Red Wins!");
+}
+
+        delay(30);
     }
 }
 

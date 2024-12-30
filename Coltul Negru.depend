@@ -1,7 +1,7 @@
 # depslib dependency file v1.0
-1733755062 source:c:\fii\ip\proiect - coltul negru\coltul negru\main.cpp
+1734540446 source:c:\fii\ip\proiect - coltul negru\coltul negru\main.cpp
 	<iostream>
 	<graphics.h>
 	<windows.h>
-	<conio.h>
+	<stack>
 
